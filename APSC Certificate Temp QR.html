@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APCE — Certificate of Membership (Dynamic QR)</title>
+  <style>
+    /* ===================== RESET ===================== */
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{background:#a8adb6;font-family:'Times New Roman',serif}
+    body{display:flex;flex-direction:column;align-items:center;padding:20px 10px 60px;min-height:100vh}
+
+    /* ===================== TOOLBAR ===================== */
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-bottom:22px;padding:14px 18px;background:#fff;border:1px solid #999;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+    .actions button{font-family:Arial,sans-serif;font-size:10pt;padding:10px 24px;border:1.5px solid #1a3a6b;background:#1a3a6b;color:#fff;cursor:pointer;border-radius:3px;font-weight:700;letter-spacing:.4px;transition:.2s;text-transform:uppercase}
+    .actions button:hover{background:#fff;color:#1a3a6b}
+    .actions button.reset{background:#fff;color:#555;border-color:#999}
+    .actions button.reset:hover{background:#555;color:#fff;border-color:#555}
+    .edit-hint{font-family:Arial,sans-serif;font-size:8.5pt;color:#666;letter-spacing:.5px;width:100%;text-align:center;margin-bottom:6px;text-transform:uppercase}
+    .edit-hint span{color:#1a3a6b;font-weight:700}
+
+    /* ===================== A4 PAGE ===================== */
+    .page{width:210mm;height:297mm;min-width:210mm;max-width:210mm;min-height:297mm;max-height:297mm;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 18px 50px rgba(0,0,0,.32);contain:strict;display:block;background:#ffffff}
+
+    /* ===================== SHARED LAYOUT ===================== */
+    .content{position:absolute;z-index:3;display:flex;flex-direction:column;justify-content:space-between}
+    .header{text-align:center;flex-shrink:0}
+    .header h1{font-weight:700;text-transform:uppercase;line-height:1.25;letter-spacing:.6px}
+    .header .regd{font-style:italic}
+    .header .location{font-variant:small-caps}
+    .emblem{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+    .watermark-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:125mm;height:125mm;object-fit:contain;opacity:.05;z-index:1;pointer-events:none;filter:grayscale(100%)}
+    .logo-img{width:36mm;height:36mm;object-fit:cover;border-radius:50%;background:#fff}
+
+    .title-block{text-align:center;flex-shrink:0}
+    .title-main{font-weight:700;text-transform:uppercase;line-height:1.15;letter-spacing:2px}
+    .title-dashes{letter-spacing:5px;margin-top:1.5mm}
+    .divider{display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0}
+    .divider .line{height:1px}
+    .divider .dia{letter-spacing:2px}
+    .ref-box{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+    .ref-box strong{font-weight:700}
+    .intro{text-align:center;flex-shrink:0}
+    .name-field{text-align:center;flex-shrink:0}
+    .name-line{font-weight:700;letter-spacing:1px;font-family:'Times New Roman',serif;border-bottom:2px solid}
+    .qual-text{text-align:justify;flex-shrink:0}
+    .badge-area{display:flex;justify-content:center;flex-shrink:0}
+    .badge{text-align:center;position:relative}
+    .badge-type{font-weight:700;text-transform:uppercase;font-family:'Times New Roman',serif;position:relative;z-index:1}
+    .badge-div{font-style:italic;position:relative;z-index:1}
+    .mem-num{text-align:center;flex-shrink:0}
+    .mem-num strong{font-weight:700}
+    .witness{text-align:justify;flex-shrink:0}
+    .validity{text-align:center;flex-shrink:0}
+    .validity strong{font-weight:700}
+    .place{text-align:center;flex-shrink:0}
+    .signatures{display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0}
+    .sig-block{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center}
+    .sig-line{width:100%;background:currentColor}
+    .sig-name{font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+    .sig-title{font-style:italic}
+    .footer-bar{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+
+    /* ===================== EDITABLE FIELDS ===================== */
+    [contenteditable="true"]{
+        outline: none;
+        cursor: text;
+        transition: background .2s, box-shadow .2s;
+        border-radius: 2px;
+    }
+    [contenteditable="true"]:hover{
+        background: rgba(26,58,107,.06);
+        box-shadow: 0 0 0 1px rgba(26,58,107,.15);
+    }
+    [contenteditable="true"]:focus{
+        background: rgba(26,58,107,.08);
+        box-shadow: 0 0 0 2px rgba(26,58,107,.35);
+        border-radius: 2px;
+    }
+    [contenteditable="true"]:empty::before{
+        content: attr(data-placeholder);
+        color: #a8b3c4;
+        font-style: italic;
+    }
+
+    /* =====================================================================
+       PREMIUM 2 — EMBOSSED NAVY + GOLD BORDER
+       ===================================================================== */
+    .frame-a{position:absolute;top:7mm;left:7mm;right:7mm;bottom:7mm;border:1.5px solid #a8862d;z-index:2;pointer-events:none}
+    .frame-b{position:absolute;top:9mm;left:9mm;right:9mm;bottom:9mm;
+      border:8px solid #1a3a6b;
+      box-shadow:0 2px 6px rgba(0,0,0,.25) inset,0 2px 6px rgba(0,0,0,.25);
+      z-index:2;pointer-events:none}
+    .frame-c{position:absolute;top:18mm;left:18mm;right:18mm;bottom:18mm;border:1px solid #a8862d;z-index:2;pointer-events:none}
+
+    /* Gold corner wedges */
+    .corner-box{position:absolute;width:14mm;height:14mm;background:#a8862d;z-index:5;pointer-events:none}
+    .cb-tl{top:7mm;left:7mm;clip-path:polygon(0 0,100% 0,0 100%)}
+    .cb-tr{top:7mm;right:7mm;clip-path:polygon(0 0,100% 0,100% 100%)}
+    .cb-bl{bottom:7mm;left:7mm;clip-path:polygon(0 0,0 100%,100% 100%)}
+    .cb-br{bottom:7mm;right:7mm;clip-path:polygon(100% 0,100% 100%,0 100%)}
+
+    /* ===================== CONTENT LAYOUT — FITS INSIDE BORDER ===================== */
+    .content{
+        top:24mm;
+        left:24mm;
+        right:24mm;
+        bottom:24mm;
+        padding:0 5mm;
+    }
+    .header{padding-bottom:3.5mm;border-bottom:2px solid #a8a8a8;position:relative}
+    .header::after{content:'✦ ✦ ✦';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);background:#ffffff;padding:0 3mm;color:#a8a8a8;font-size:10pt;letter-spacing:5px}
+    .header h1{font-size:14.5pt;letter-spacing:1.5px;color:#1a3a6b}
+    .header .regd{font-size:8.5pt;color:#555;margin-top:1.6mm}
+    .header .location{font-size:9pt;color:#444;margin-top:.7mm}
+    .emblem{margin:4mm 0 2mm}
+    .logo-img{box-shadow:0 0 0 3px #ffffff,0 0 0 5.5px #a8862d,0 0 0 7px #ffffff,0 0 0 8.5px #1a3a6b}
+    .title-block{margin:1mm 0}
+    .title-main{font-size:20.5pt;letter-spacing:4.5px;color:#1a3a6b}
+    .title-dashes{font-size:11pt;color:#a8862d;letter-spacing:9px}
+    .divider{margin:3mm 0 3.5mm}
+    .divider .line{width:34mm;background:linear-gradient(to right,transparent,#a8862d,transparent)}
+    .divider .dia{color:#1a3a6b;font-size:9pt}
+
+    /* ===================== REF BOX — TRANSPARENT ===================== */
+    .ref-box{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        flex-shrink:0;
+        padding:2mm 0;
+        margin-bottom:3.5mm;
+        font-size:10pt;
+        color:#222;
+        background:transparent;
+        border:none;
+        position:relative;
+    }
+    .ref-box span{
+        display:inline-flex;
+        align-items:baseline;
+        gap:2mm;
+    }
+    .ref-box strong{
+        font-weight:700;
+        color:#1a3a6b;
+        font-size:10.5pt;
+        border-bottom:1px dotted #a8862d;
+        padding-bottom:.7mm;
+        min-width:52mm;
+        display:inline-block;
+        text-align:left;
+    }
+
+    .intro{font-size:11pt;color:#222;line-height:1.5;margin-bottom:1mm}
+    .name-field{margin:3.5mm 8mm 2.5mm}
+    .name-line{border-color:#a8862d;padding-bottom:2mm;font-size:15pt;color:#1a3a6b;min-height:8.5mm}
+    .qual-text{font-size:11pt;color:#222;line-height:1.6;margin-bottom:3mm;padding:0 3mm}
+    .badge-area{margin:2mm 0 3mm}
+    .badge{background:linear-gradient(135deg,#1a3a6b,#2a4f85,#1a3a6b);color:#fff;padding:3.5mm 13mm;position:relative;box-shadow:0 4px 14px rgba(26,58,107,.3)}
+    .badge::before{content:'';position:absolute;top:1.1mm;left:1.1mm;right:1.1mm;bottom:1.1mm;border:.8px solid #a8862d;pointer-events:none}
+    .badge-type{font-size:13pt;color:#e8eef7;letter-spacing:3.5px}
+    .badge-div{font-size:9pt;color:#c8d4e8;letter-spacing:1.5px;margin-top:1mm}
+    .mem-num{font-size:11pt;color:#222;margin:2mm 0 1.5mm}
+    .mem-num strong{color:#1a3a6b;font-size:11.5pt;border-bottom:1px dotted #1a3a6b;padding-bottom:.5mm}
+    .witness{font-size:10.5pt;color:#222;line-height:1.6;margin:1.5mm 0 2mm;padding:0 3mm}
+    .validity{font-size:11pt;color:#222;margin:1.5mm 0 1mm}
+    .validity strong{color:#1a3a6b;border-bottom:1px dotted #1a3a6b;padding-bottom:.5mm;}
+    .place{font-size:11pt;color:#222;margin:1mm 0 2.5mm}
+
+    /* ===================== SIGNATURES — NO TOP LINE ===================== */
+    .signatures{
+        padding:4mm 3mm 2mm;
+        gap:6mm;
+        border-top:none;
+        position:relative;
+        margin-top:3mm;
+    }
+    .signatures::before{display:none}
+    .sig-line{max-width:48mm;height:1.5px;background:#1a3a6b;margin-bottom:2mm}
+    .sig-name{font-size:10.5pt;color:#1a3a6b;margin-bottom:.8mm}
+    .sig-title{font-size:9pt;color:#555}
+    .footer-bar{font-size:7.5pt;color:#888;border-top:1px solid #a8a8a8;padding-top:2mm;margin-top:2mm}
+
+    /* ===================== GOLD SEAL ===================== */
+    .gold-seal{
+        position:absolute;
+        left:50%;
+        top:0;
+        transform:translate(-50%,-50%);
+        width:20mm;
+        height:20mm;
+        z-index:5;
+        pointer-events:none;
+    }
+    .seal-badge{
+        width:20mm;height:20mm;border-radius:50%;
+        background:radial-gradient(circle at 32% 30%, #f6e2a0 0%, #d4b369 35%, #a8862d 70%, #6b5020 100%);
+        display:flex;align-items:center;justify-content:center;position:relative;
+        box-shadow:
+            0 0 0 1px rgba(255,255,255,.6) inset,
+            0 0 0 2px #a8862d,
+            0 0 0 3px #fff,
+            0 0 0 4px #a8862d,
+            0 4px 12px rgba(0,0,0,.35);
+    }
+    .seal-badge::before{content:'';position:absolute;inset:2.8mm;border-radius:50%;border:1px dashed rgba(60,40,10,.55)}
+    .seal-badge::after{content:'';position:absolute;inset:5mm;border-radius:50%;border:1px solid rgba(60,40,10,.4)}
+    .seal-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#4a3410;font-family:'Times New Roman',serif;text-align:center;line-height:1.1;z-index:2}
+    .seal-inner .seal-top{font-size:5.5pt;letter-spacing:1.2px;font-weight:700}
+    .seal-inner .seal-mid{font-size:7.5pt;letter-spacing:.5px;font-weight:700;margin:.3mm 0}
+    .seal-inner .seal-bot{font-size:4pt;letter-spacing:.8px;font-style:italic}
+
+    /* ===================== QR & BOTTOM ===================== */
+    .bottom-row{display:flex;justify-content:space-between;align-items:flex-end;flex-shrink:0;position:relative;padding-top:1.5mm}
+    .qr-slot{display:flex;background:#fff;padding:1.5mm;border-radius:3px;flex-shrink:0}
+    .qr-img{width:19mm;height:19mm;display:block;background:#fff;border:1px solid #1a3a6b}
+    .cert-footer-text{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:1mm;font-family:'Helvetica Neue',Arial,sans-serif;font-size:7.5pt;letter-spacing:2px;text-transform:uppercase;padding-bottom:1.5mm}
+    .cert-footer-text .big{font-size:9pt;font-weight:700;letter-spacing:2.5px}
+    .cert-footer-text .small{font-size:7pt;opacity:.55;letter-spacing:1.5px}
+
+    /* ===================== SPACER TO PREVENT SEAL OVERLAP ===================== */
+    .place-spacer {
+        height: 8mm;  /* Creates dedicated space below "Place" for the seal to overlap cleanly */
+        flex-shrink: 0;
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media screen and (max-width:820px){
+        .page{width:100%;max-width:100%;min-width:0;height:auto;min-height:auto;max-height:none;contain:none;aspect-ratio:210/297}
+        .watermark-logo{width:95mm;height:95mm}
+        .logo-img{width:26mm;height:26mm}
+        .qr-img{width:17mm;height:17mm}
+        .gold-seal{width:15mm;height:15mm}
+        .seal-badge{width:15mm;height:15mm}
+        .seal-badge::before{inset:2.1mm}
+        .seal-badge::after{inset:3.8mm}
+        .actions button{padding:8px 16px;font-size:9pt}
+        .signatures{margin-top: 3mm;}
+        .ref-box{flex-direction:column;gap:1.5mm;align-items:flex-start;}
+        .ref-box strong{min-width:auto;}
+        .corner-box{width:11mm;height:11mm}
+        .place-spacer{height:6mm}
+    }
+
+    /* ===================== PRINT ===================== */
+    @page{size:A4 portrait;margin:0}
+    @media print{
+        html,body{width:210mm;height:297mm;margin:0!important;padding:0!important;background:#fff!important;display:block!important;min-height:auto!important;overflow:hidden!important}
+        .toolbar{display:none!important}
+        .page{
+            display:block!important;
+            width:210mm!important;height:297mm!important;
+            min-width:210mm!important;max-width:210mm!important;
+            min-height:297mm!important;max-height:297mm!important;
+            margin:0!important;padding:0!important;
+            box-shadow:none!important;border:none!important;
+            overflow:hidden!important;contain:strict!important;
+            page-break-after:avoid!important;page-break-inside:avoid!important;
+            -webkit-print-color-adjust:exact!important;
+            print-color-adjust:exact!important;
+        }
+        [contenteditable="true"]:hover,
+        [contenteditable="true"]:focus{
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        .logo-img,.watermark-logo,.qr-img,.gold-seal,.seal-badge,.corner-box,.frame-a,.frame-b,.frame-c{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+        .logo-img{width:36mm!important;height:36mm!important}
+        .ref-box{background:transparent!important;border:none!important;box-shadow:none!important;}
+        .signatures{border-top:none!important;}
+        .signatures::before{display:none!important;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== TOOLBAR ==================== -->
+<div class="toolbar">
+    <div class="edit-hint">✎ Click on any <span>blue underlined / bold text</span> to edit. QR updates automatically.</div>
+    <div class="actions">
+        <button onclick="savePDF()">💾 Save as PDF</button>
+        <button class="reset" onclick="resetAll()">↻ Reset Data</button>
+    </div>
+</div>
+
+<!-- ==================== CERTIFICATE ==================== -->
+<div class="page" id="certPage">
+    <img src="https://raw.githubusercontent.com/Anhsirk151/kmconstruction-assets/f13a6d29adf2c2e1c979d598046152ab87559bf0/APCE1.jpeg" alt="" class="watermark-logo">
+
+    <!-- Premium 2 — Embossed Navy + Gold Border -->
+    <div class="frame-a"></div>
+    <div class="frame-b"></div>
+    <div class="frame-c"></div>
+    <div class="corner-box cb-tl"></div>
+    <div class="corner-box cb-tr"></div>
+    <div class="corner-box cb-bl"></div>
+    <div class="corner-box cb-br"></div>
+
+    <div class="content">
+        <div>
+            <div class="header">
+                <h1>Association of Professional Civil Engineers, Odisha (APCE)</h1>
+                <div class="regd">(Registered under Societies Registration Act)</div>
+                <div class="location">Bhubaneswar / Cuttack, Odisha</div>
+            </div>
+            <div class="emblem"><img src="https://raw.githubusercontent.com/Anhsirk151/kmconstruction-assets/f13a6d29adf2c2e1c979d598046152ab87559bf0/APCE1.jpeg" alt="APCE Logo" class="logo-img"></div>
+            <div class="title-block"><div class="title-main">Certificate of Membership</div><div class="title-dashes">✦ ✦ ✦</div></div>
+            <div class="divider"><span class="line"></span><span class="dia">◆ ◆ ◆</span><span class="line"></span></div>
+
+            <!-- REF BOX — TRANSPARENT -->
+            <div class="ref-box">
+                <span>Certificate No.: <strong contenteditable="true" data-placeholder="APCE / CERT / 2026 / ___" id="certNo">APCE / CERT / 2026 / ___</strong></span>
+                <span>Date of Issue: <strong contenteditable="true" data-placeholder="__ / __ / 20__" id="issueDate">__ / __ / 20__</strong></span>
+            </div>
+
+            <div class="intro">This is to certify that:</div>
+
+            <div class="name-field">
+                <div class="name-line" contenteditable="true" data-placeholder="Er. ___________" id="memberName">Er. ___________</div>
+            </div>
+
+            <div class="qual-text">having fulfilled all the academic qualifications, professional standards, and requirements stipulated under the Constitution and By-Laws of the Association, has been duly admitted as a:</div>
+
+            <div class="badge-area">
+                <div class="badge">
+                    <div class="badge-type" contenteditable="true" data-placeholder="* LIFE MEMBER / FELLOW MEMBER *" id="badgeType">* LIFE MEMBER / FELLOW MEMBER *</div>
+                    <div class="badge-div" contenteditable="true" data-placeholder="(Civil Engineering Division)" id="badgeDiv">(Civil Engineering Division)</div>
+                </div>
+            </div>
+
+            <div class="mem-num">Membership Number: <strong contenteditable="true" data-placeholder="APCE / LM / ___" id="memNo">APCE / LM / ___</strong></div>
+
+            <div class="witness">In witness whereof, the Association has caused its Official Seal to be affixed under the signatures of the authorized office bearers.</div>
+
+            <div class="validity">Valid Up To: <strong contenteditable="true" data-placeholder="Life Member / _____" id="validity">Life Member / _____</strong></div>
+
+            <div class="place">Place: <span contenteditable="true" data-placeholder="Odisha, India" id="place">Odisha, India</span></div>
+
+            <!-- Spacer to prevent gold seal from overlapping "Place: Odisha, India" -->
+            <div class="place-spacer"></div>
+        </div>
+
+        <!-- Signatures with Gold Seal — no top line -->
+        <div class="signatures">
+            <div class="gold-seal">
+                <div class="seal-badge">
+                    <div class="seal-inner">
+                        <span class="seal-top">APCE</span>
+                        <span class="seal-mid">★</span>
+                        <span class="seal-bot">Official</span>
+                    </div>
+                </div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line"></div>
+                <div class="sig-name">General Secretary</div>
+                <div class="sig-title">APCE, Odisha</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line"></div>
+                <div class="sig-name">President</div>
+                <div class="sig-title">APCE, Odisha</div>
+            </div>
+        </div>
+
+        <!-- QR + Footer -->
+        <div class="bottom-row">
+            <div class="qr-slot">
+                <!-- QR code image will be updated dynamically by JavaScript -->
+                <img class="qr-img" id="qrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=APCE%20Certificate" alt="QR Code">
+            </div>
+            <div class="cert-footer-text">
+                <span class="big">APCE / Certificate of Membership / 2026</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+    function getTodayFormatted() {
+        const d = new Date();
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day} / ${month} / ${year}`;
+    }
+
+    function getCurrentYear() {
+        return new Date().getFullYear();
+    }
+
+    const DEFAULTS = {
+        certNo:     `APCE / CERT / ${getCurrentYear()} / ___`,
+        issueDate:  getTodayFormatted(),
+        memberName: 'Er. ___________',
+        badgeType:  '* LIFE MEMBER / FELLOW MEMBER *',
+        badgeDiv:   '(Civil Engineering Division)',
+        memNo:      'APCE / LM / ___',
+        validity:   'Life Member / _____',
+        place:      'Odisha, India'
+    };
+
+    function loadDefaults() {
+        for (const id in DEFAULTS) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = DEFAULTS[id];
+        }
+    }
+
+    // ---------- DYNAMIC QR CODE GENERATION ----------
+    function generateQRText() {
+        const certNo = document.getElementById('certNo')?.textContent.trim() || 'N/A';
+        const issueDate = document.getElementById('issueDate')?.textContent.trim() || 'N/A';
+        const memberName = document.getElementById('memberName')?.textContent.trim() || 'N/A';
+        const memNo = document.getElementById('memNo')?.textContent.trim() || 'N/A';
+
+        // Simple text format: Name, Certificate No, Date of Issue, Membership Number
+        return `Name: ${memberName}\nCertificate No: ${certNo}\nDate of Issue: ${issueDate}\nMembership No: ${memNo}`;
+    }
+
+    function updateQRCode() {
+        const qrImg = document.getElementById('qrImg');
+        if (!qrImg) return;
+
+        const qrData = generateQRText();
+        const encodedData = encodeURIComponent(qrData);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedData}`;
+        qrImg.src = qrUrl;
+    }
+
+    // ---------- RESET ----------
+    function resetAll() {
+        if (confirm('Reset all certificate data to defaults?')) {
+            loadDefaults();
+            if (document.activeElement) document.activeElement.blur();
+            updateQRCode();
+        }
+    }
+
+    function savePDF() {
+        if (document.activeElement) document.activeElement.blur();
+        updateQRCode();
+        setTimeout(() => {
+            window.print();
+        }, 150);
+    }
+
+    /* ---------- SMART FIELD: underscores vanish on typing ---------- */
+    function setupUnderscoreRemoval() {
+        const fields = ['certNo', 'memberName', 'memNo', 'validity'];
+
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const getDefaultText = () => DEFAULTS[id];
+
+            el.addEventListener('beforeinput', function(e) {
+                if (e.inputType.startsWith('insert') || e.inputType === 'insertFromPaste') {
+                    const current = el.textContent;
+                    if (current.includes('_')) {
+                        let cleaned = current.replace(/_/g, '').trimEnd();
+                        el.textContent = cleaned;
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(el);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+            });
+
+            el.addEventListener('blur', function() {
+                const txt = el.textContent.trim();
+                if (txt === '' || txt === '/' || txt === 'Er.' ||
+                    txt === 'APCE / CERT /' || txt === 'APCE / LM /' ||
+                    txt === 'Life Member /') {
+                    el.textContent = getDefaultText();
+                } else {
+                    if (el.textContent.includes('_')) {
+                        let cleaned = el.textContent.replace(/_+$/, '').trimEnd();
+                        if (cleaned.endsWith('/')) cleaned = cleaned.slice(0, -1).trimEnd();
+                        el.textContent = cleaned;
+                    }
+                }
+                updateQRCode();
+            });
+
+            el.addEventListener('input', function() {
+                updateQRCode();
+            });
+        });
+    }
+
+    function setupQRListeners() {
+        const qrFields = ['certNo', 'issueDate', 'memberName', 'memNo'];
+        qrFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', updateQRCode);
+                el.addEventListener('blur', updateQRCode);
+            }
+        });
+    }
+
+    // ---------- INIT ----------
+    window.addEventListener('DOMContentLoaded', () => {
+        loadDefaults();
+        setupUnderscoreRemoval();
+        setupQRListeners();
+        setTimeout(updateQRCode, 50);
+    });
+
+    document.addEventListener('keydown', function(e){
+        if((e.ctrlKey || e.metaKey) && e.key === 'p'){
+            e.preventDefault();
+            savePDF();
+        }
+    });
+
+    const observer = new MutationObserver(() => {
+        updateQRCode();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const contentDivs = document.querySelectorAll('[contenteditable="true"]');
+        contentDivs.forEach(div => {
+            observer.observe(div, { childList: true, characterData: true, subtree: true });
+        });
+    });
+</script>
+
+</body>
+</html>
